@@ -1,163 +1,166 @@
-<a href="https://livekit.io/">
-  <img src="./.github/assets/livekit-mark.png" alt="LiveKit logo" width="100" height="100">
-</a>
+# Jzbedin
 
-# LiveKit Agents Starter - Python
+A voice AI butler built on [LiveKit Agents](https://docs.livekit.io/agents/) and Gemini's
+realtime model. Jzbedin talks to you, looks things up when it needs to, and drives a real
+Chromium browser on your behalf.
 
-A complete starter project for building voice AI apps with [LiveKit Agents for Python](https://github.com/livekit/agents) and [LiveKit Cloud](https://cloud.livekit.io/).
+The project is a fork of
+[`livekit-examples/agent-starter-python`](https://github.com/livekit-examples/agent-starter-python),
+extended with a browser, web search, a rewritten instruction set, and two clients.
 
-The starter project includes:
+## What makes it different
 
-- A simple voice AI assistant, ready for extension and customization
-- A voice AI pipeline built on [LiveKit Inference](https://docs.livekit.io/agents/models/inference), providing zero-configuration access to [models](https://docs.livekit.io/agents/models) from top labs
-  - Uses the fast, open-weight Gemma 4 31B model, [hosted by LiveKit](https://docs.livekit.io/agents/models/llm/livekit/) and tuned for optimal performance in voice AI, as the default LLM
-  - Uses Fish Audio S2.1 Pro for TTS, which renders the inline delivery markup that expressive mode relies on
-  - Supports more than 50 models from OpenAI, Cartesia, Deepgram, and other providers
-  - Access to a wide range of other models, including [Realtime models](https://docs.livekit.io/agents/models/realtime), through extensive plugin ecosystem
-- Expressive mode, enabled by default: the framework injects the TTS provider's markup guide into the LLM prompt, so the model emits inline delivery tags (emotion, pacing, non-verbal sounds) that the TTS renders and the transcript never shows
-- Eval suite based on the LiveKit Agents [testing & evaluation framework](https://docs.livekit.io/agents/start/testing/)
-- [LiveKit Turn Detector](https://docs.livekit.io/agents/logic/turns/turn-detector/), an end-of-turn model that listens to the user's audio directly, combining semantic understanding with acoustic cues for state-of-the-art accuracy across 14 languages
-- [Background voice cancellation](https://docs.livekit.io/transport/media/noise-cancellation/)
-- Deep session insights from LiveKit [Agent Observability](https://docs.livekit.io/deploy/observability/)
-- A Dockerfile ready for [production deployment to LiveKit Cloud](https://docs.livekit.io/deploy/agents/)
+Most demo agents greet you, answer one question, and stop. Jzbedin was built against three
+specific complaints:
 
-This starter app is compatible with any [custom web/mobile frontend](https://docs.livekit.io/frontends/) or [telephony](https://docs.livekit.io/telephony/).
+- **Replies that stopped half way through.** The instructions now require a complete answer,
+  and a single turn's output is capped so the agent cannot monologue past the point of use.
+- **Invented facts.** The instructions tell the model to distinguish what a tool returned from
+  what it is guessing, and to say when a result is too thin to support an answer.
+- **A greeting that forgot its own name.** The opening line is a fixed constant spoken with
+  `session.say()` rather than generated, so the agent always introduces itself. If you offer
+  your name in the first reply, Jzbedin remembers it and uses it for the rest of the session.
 
-## Using coding agents
+Interruption handling is tuned so Jzbedin stops talking when you start talking, instead of
+finishing a sentence over you.
 
-This project is designed to work with coding agents like [Claude Code](https://claude.com/product/claude-code), [Cursor](https://www.cursor.com/), and [Codex](https://openai.com/codex/).
+## Tools
 
-For your convenience, LiveKit offers both a CLI and an [MCP server](https://docs.livekit.io/reference/developer-tools/docs-mcp/) that can be used to browse and search its documentation. The [LiveKit CLI](https://docs.livekit.io/intro/basics/cli/) (`lk docs`) works with any coding agent that can run shell commands. Install it for your platform:
+Jzbedin has ten tools. Nine drive a Chromium instance through Playwright, and one searches
+the web.
 
-**macOS:**
+| Tool | Purpose |
+| --- | --- |
+| `browse` | Open a page and return its visible structure. |
+| `browse_click` | Click an element by its inspected target. |
+| `browse_interact` | Type into a field, then optionally submit. |
+| `browse_nav` | Go back, forward, or reload. |
+| `browse_tabs` | List, open, or close browser tabs. |
+| `browse_key` | Press a key such as `Enter` or `Tab`. |
+| `scroll` | Scroll the page. |
+| `screenshot` | Save a PNG of the current viewport. |
+| `confirm_browser_action` | Record that the user approved a consequential action. |
+| `search_web` | Search the web via DuckDuckGo. |
 
-```console
-brew install livekit-cli
-```
+The browser tools share a single inspection path, so the model gets the same shape of
+response whichever tool it calls. Submissions and `Enter` presses are consequential: they
+require a `confirm_browser_action` call first, and the approval is consumed by the very next
+action. A confirmation cannot be reused for a second click.
 
-**Linux:**
+## Getting started
 
-```console
-curl -sSL https://get.livekit.io/cli | bash
-```
-
-**Windows:**
-
-```console
-winget install LiveKit.LiveKitCLI
-```
-
-The `lk docs` subcommand requires version 2.15.0 or higher. Check your version with `lk --version` and update if needed. Once installed, your coding agent can search and browse LiveKit documentation directly from the terminal:
-
-```console
-lk docs search "voice agents"
-lk docs get-page /agents/start/voice-ai-quickstart
-```
-
-See the [Using coding agents](https://docs.livekit.io/intro/coding-agents/) guide for more details, including MCP server setup.
-
-The project includes a complete [AGENTS.md](AGENTS.md) file for these assistants. You can modify this file to suit your needs. To learn more about this file, see [https://agents.md](https://agents.md).
-
-## Dev Setup
-
-Create a project from this template with the LiveKit CLI (recommended):
+You need [uv](https://docs.astral.sh/uv/), a LiveKit Cloud project, and a Google AI Studio
+key for the realtime model.
 
 ```bash
-lk cloud auth
-lk agent init my-agent --template agent-starter-python
-```
-
-The CLI clones the template and configures your environment. Then follow the rest of this guide from [Run the agent](#run-the-agent).
-
-<details>
-<summary>Alternative: Manual setup without the CLI</summary>
-
-Clone the repository and install dependencies to a virtual environment:
-
-```console
-cd agent-starter-python
 uv sync
+uv run playwright install chromium
 ```
 
-Sign up for [LiveKit Cloud](https://cloud.livekit.io/) then set up the environment by copying `.env.example` to `.env.local` and filling in the required keys:
+Create a `.env.local` and fill it in:
 
-- `LIVEKIT_URL`
-- `LIVEKIT_API_KEY`
-- `LIVEKIT_API_SECRET`
+```
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+GOOGLE_API_KEY=
+```
 
-You can load the LiveKit environment automatically using the [LiveKit CLI](https://docs.livekit.io/intro/basics/cli/):
+Get the LiveKit keys from
+[cloud.livekit.io/settings/keys](https://cloud.livekit.io/settings/keys) and the Google key
+from [aistudio.google.com/apikey](https://aistudio.google.com/apikey). `.env.local` is
+gitignored; never commit real keys.
+
+Run the agent locally:
 
 ```bash
-lk cloud auth
-lk app env --write --destination .env.local
+uv run src/agent.py dev
 ```
 
-</details>
+The same bootstrap is available as `task dev` if you use [Task](https://taskfile.dev).
 
-## Run the agent
+### Configuration
 
-Run this command to speak to your agent directly in your terminal:
+| Variable | Meaning |
+| --- | --- |
+| `JZBEDIN_BROWSER_HEADLESS` | Set to `1` to hide the Chromium window. |
+| `JZBEDIN_BROWSER_SCREENSHOT_DIR` | Where `screenshot` writes PNGs. Defaults to `./screenshots`. |
 
-```console
-uv run python src/agent.py console
+## Clients
+
+Two clients talk to the agent. Both are part of this repository and were flattened out of
+their own git histories when they were brought in.
+
+- `frontend/` — Next.js web client with LiveKit's agent UI components.
+- `livekit_flutter_starter/` — Flutter client for iOS, Android, macOS, and web.
+
+The web client needs a token endpoint to mint session tokens:
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
 ```
 
-To run the agent for use with a frontend or telephony, use the `dev` command:
+The client expects a token endpoint at `app/api/token/route.ts` to mint session tokens. The
+version included is a development token server; see `frontend/README.md` before deploying it.
 
-```console
-uv run python src/agent.py dev
+## Testing
+
+```bash
+uv run pytest          # unit and tool tests
+uv run ruff check src tests
+uv run ruff format --check src tests
 ```
 
-In production, use the `start` command:
+The tests run in CI on every push. `tests/test_agent.py` covers agent behaviour, and
+`tests/test_browser_tools.py` covers the browser tools and the confirmation gate.
 
-```console
-uv run python src/agent.py start
-```
+Behaviour that needs a live conversation is covered by simulations instead. Each scenario in
+`scenarios.yaml` is a full conversation with a simulated user, judged against expectations:
 
-## Frontend & Telephony
-
-Get started quickly with our pre-built frontend starter apps, or add telephony support:
-
-| Platform | Link | Description |
-|----------|----------|-------------|
-| **Web** | [`livekit-examples/agent-starter-react`](https://github.com/livekit-examples/agent-starter-react) | Web voice AI assistant with React & Next.js |
-| **iOS/macOS** | [`livekit-examples/agent-starter-swift`](https://github.com/livekit-examples/agent-starter-swift) | Native iOS, macOS, and visionOS voice AI assistant |
-| **Flutter** | [`livekit-examples/agent-starter-flutter`](https://github.com/livekit-examples/agent-starter-flutter) | Cross-platform voice AI assistant app |
-| **React Native** | [`livekit-examples/voice-assistant-react-native`](https://github.com/livekit-examples/voice-assistant-react-native) | Native mobile app with React Native & Expo |
-| **Android** | [`livekit-examples/agent-starter-android`](https://github.com/livekit-examples/agent-starter-android) | Native Android app with Kotlin & Jetpack Compose |
-| **Web Embed** | [`livekit-examples/agent-starter-embed`](https://github.com/livekit-examples/agent-starter-embed) | Voice AI widget for any website |
-| **Telephony** | [Documentation](https://docs.livekit.io/telephony/) | Add inbound or outbound calling to your agent |
-
-For advanced customization, see the [complete frontend guide](https://docs.livekit.io/frontends/).
-
-## Tests and evals
-
-Simulations run full multi-turn conversations between a simulated user and your agent on LiveKit Cloud, then judge each transcript. The scenarios live in [`scenarios.yaml`](scenarios.yaml). Run them locally with the [LiveKit CLI](https://docs.livekit.io/intro/basics/cli/):
-
-```console
+```bash
 lk agent simulate --scenarios scenarios.yaml
 ```
 
-The `Simulations` workflow in `.github/workflows/simulations.yml` runs the same file on every merge to `main` and on demand from the Actions tab. It runs there rather than on every pull request push because each run spends real inference. See the [simulations guide](https://docs.livekit.io/agents/start/testing/simulations/) for how to write scenarios and read results.
+These run in CI on every merge to `main`. When you change the instructions, the tool
+descriptions, or a workflow, add a scenario for what you changed and write the test first.
 
-For turn-level checks that don't need a live session, the LiveKit Agents [testing & evaluation framework](https://docs.livekit.io/agents/start/testing/) runs your agent in-process under `pytest`. A commented-out example lives in [`tests/test_agent.py`](tests/test_agent.py).
+## Deployment
 
-## Using this template repo for your own project
+The included `Dockerfile` runs the agent as a worker:
 
-Once you've started your own project based on this repo, you should:
+```bash
+docker build -t jzbedin .
+docker run -p 8081:8081 --env-file .env.local jzbedin
+```
 
-1. **Check in your `uv.lock`**: This file is currently untracked for the template, but you should commit it to your repository for reproducible builds and proper configuration management. (The same applies to `livekit.toml`, if you run your agents in LiveKit Cloud)
+The image already sets `JZBEDIN_BROWSER_HEADLESS=1` and installs Chromium, so the browser
+tools work in the container. The agent in `start` mode registers with LiveKit and serves a
+health check on port 8081; set `PORT` to change it.
 
-2. **Add your own repository secrets**: You must [add secrets](https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-what-your-workflow-does/using-secrets-in-github-actions) for `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` so that the simulations can run in CI.
+For a hosted deployment, see the
+[LiveKit Agents documentation](https://docs.livekit.io/agents/build/deployment/).
 
-## Deploying to production
+## Repository layout
 
-This project is production-ready and includes a working `Dockerfile`. To deploy it to LiveKit Cloud or another environment, see the [deploying to production](https://docs.livekit.io/deploy/agents/) guide.
+```
+src/agent.py           the agent: session setup, greeting, name memory, turn limits
+src/prompts.py         system instructions and the fixed greeting
+src/browser_tools.py   the nine Playwright tools and the confirmation gate
+src/tools.py           web search
+frontend/              Next.js client
+livekit_flutter_starter/  Flutter client
+scenarios.yaml         simulation scenarios
+```
 
-## Self-hosted LiveKit
+`AGENTS.md` has notes for working on this codebase, including the LiveKit documentation
+tooling and the testing conventions.
 
-You can also self-host LiveKit instead of using LiveKit Cloud. See the [self-hosting](https://docs.livekit.io/transport/self-hosting/local/) guide for more information. If you choose to self-host, you'll need to also use [model plugins](https://docs.livekit.io/agents/models/#plugins) instead of LiveKit Inference and will need to remove the [LiveKit Cloud noise cancellation](https://docs.livekit.io/transport/media/noise-cancellation/) plugin.
+## Credits
 
-## License
+Built on the
+[LiveKit Agents Python starter](https://github.com/livekit-examples/agent-starter-python).
+LiveKit provides the realtime transport, Gemini provides the model, and Playwright provides
+the browser.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
