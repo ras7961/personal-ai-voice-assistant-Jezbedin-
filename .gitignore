@@ -11,6 +11,43 @@ KMS
 .pytest_cache
 .ruff_cache
 
+# Local Playwright browser binaries (installed to a drive with free space)
+.playwright/
+
+# Screenshots written by the agent-controlled browser's screenshot tool
+screenshots/
+
+# Nested git metadata set aside while flattening vendored template repos
+.git.bak/
+.git.bak2/
+
+# Android / Kotlin / Flutter build detritus.
+# A pattern with a slash in the middle is anchored to this file's directory, so
+# these need **/ to reach the client nested under livekit_flutter_starter/.
+**/android/.gradle/
+**/android/.kotlin/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/captures/
+**/DerivedData/
+**/Flutter/ephemeral/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.pnpm-store/
+
+# Test and coverage output
+coverage/
+*.lcov
+
+# OS noise
+Thumbs.db
+desktop.ini
+
 # Claude Code
 .claude/settings.local.json
 .claude/worktrees/

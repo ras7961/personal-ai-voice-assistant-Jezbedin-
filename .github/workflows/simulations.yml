@@ -39,6 +39,9 @@ jobs:
     - name: Download model files
       run: uv run python src/agent.py download-files
 
+    - name: Install Playwright browser for the agent's browser tools
+      run: uv run playwright install --with-deps chromium
+
     - name: Install LiveKit CLI
       run: curl -sSL https://get.livekit.io/cli | bash
 

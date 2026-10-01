@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test Page</title>
+</head>
+<body>
+  <h1>Test Page</h1>
+  <p>a static page for browser tests.</p>
+  <a href="#nowhere">About</a>
+  <input type="text" id="search" placeholder="Search here">
+  <button id="go">Go</button>
+  <select id="pick" aria-label="Pick one">
+    <option value="a">Alpha</option>
+    <option value="b">Bravo</option>
+  </select>
+  <input type="checkbox" id="agree" aria-label="Agree">
+  <span id="out">none</span>
+  <script>
+    const out = document.getElementById("out");
+    document.getElementById("go").addEventListener("click", () => {
+      out.textContent = "searched:" + document.getElementById("search").value;
+    });
+    document.getElementById("pick").addEventListener("change", () => {
+      out.textContent = "picked:" + document.getElementById("pick").value;
+    });
+  </script>
+</body>
+</html>

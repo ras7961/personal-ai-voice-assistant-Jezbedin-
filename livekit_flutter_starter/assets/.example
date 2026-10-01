@@ -1,0 +1,5 @@
+# Copy this file to assets/.env and set your token server sandbox ID,
+# found in your LiveKit Cloud project's Settings page.
+# Without it, the app connects to a default agent.
+LIVEKIT_SANDBOX_ID=''
+LIVEKIT_AGENT_NAME='my-agent'

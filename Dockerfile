@@ -18,6 +18,12 @@ ENV UV_COMPILE_BYTECODE=1
 # Ensure local models are downloaded to a shared directory accessible by all stages.
 ENV HF_HOME=/app/.cache/huggingface
 ENV TORCH_HOME=/app/.cache/torch
+# Playwright browser binaries are installed into /app/.cache so the production
+# stage (which copies /app) ships them with the app.
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright
+# Headless=true in the container: there is no display server, so a visible
+# browser cannot open there (locally the browser shows by default).
+ENV JZBEDIN_BROWSER_HEADLESS=1
 
 # --- Build stage ---
 # Install dependencies, build native extensions, and prepare the application
@@ -47,6 +53,10 @@ RUN mkdir -p src
 # This creates a virtual environment and installs all dependencies
 # Ensure your uv.lock file is checked in for consistency across environments
 RUN uv sync --locked
+
+# Install the Chromium used by the agent-controlled browser tools, along with
+# the system libraries Chromium needs to run.
+RUN PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright uv run playwright install --with-deps chromium
 
 # Pre-download any ML models or files the agent needs
 # This runs before COPY . . so the download layer is cached across code-only changes.

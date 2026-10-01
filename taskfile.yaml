@@ -86,6 +86,7 @@ tasks:
     desc: "Bootstrap application for local development"
     cmds:
       - "uv sync"
+      - "uv run playwright install chromium"
 
   dev:
     interactive: true
